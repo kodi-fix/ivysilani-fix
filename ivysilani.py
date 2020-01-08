@@ -4,6 +4,7 @@
 """Wrapper pro iVysílání České televize
 """
 
+import ssl
 import httplib
 import time
 import urllib
@@ -183,7 +184,9 @@ class _Playable:
         if root.tag == "errors":
             raise Exception(', '.join([e.text for e in root]))
         playlist_url = root.text
-        resp = urllib2.urlopen(playlist_url)
+        ctx = ssl.create_default_context()
+        ctx.set_ciphers('DEFAULT:!DH')
+        resp = urllib2.urlopen(url=playlist_url,context=ctx)
         playlist_data = resp.read()
         root = ET.fromstring(playlist_data)
         videos = root.findall("smilRoot/body//video")
@@ -196,7 +199,7 @@ class _Playable:
         if switchItem:
             url = switchItem.get("base") + "/" + url
         try:
-            if urllib2.urlopen(url).getcode() == 200:
+            if urllib2.urlopen(url=url,context=ctx).getcode() == 200:
                 self._links()[quality] = url
         except urllib2.HTTPError:
             return None
@@ -330,7 +333,9 @@ def _https_ceska_televize_fetch(url, params):
                "Accept-encoding": "gzip",
                "Connection": "Keep-Alive",
                "User-Agent": "Dalvik/1.6.0 (Linux; U; Android 4.4.4; Nexus 7 Build/KTU84P)"}
-    conn = httplib.HTTPConnection("192.168.168.5")
+    ctx = ssl.create_default_context()
+    ctx.set_ciphers('DEFAULT:!DH')
+    conn = httplib.HTTPSConnection(host="www.ceskatelevize.cz",context=ctx)
     conn.request("POST", url, urllib.urlencode(params), headers)
     response = conn.getresponse()
     if response.status == 200:
